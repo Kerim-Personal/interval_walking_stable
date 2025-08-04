@@ -1,8 +1,8 @@
-// lib/screens/login_screen.dart (Devrim Versiyonu)
+// lib/screens/login_screen.dart (Ufka Yürüyüş Versiyonu)
 
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:interval_walking/services/auth_service.dart';
+import 'dart:math' as math;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,206 +12,244 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
-  late AnimationController _controller;
-  late List<AnimationController> _controllers;
-  final List<Widget> _children = [];
-  final int _count = 20; // Ekranda gezinecek obje sayısı
+  late AnimationController _animationController;
+  late AnimationController _contentAnimationController;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    // Ana sahne animasyonu için controller
+    _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 15), // Animasyon süresini uzattık
+    )..repeat();
+
+    // İçeriklerin giriş animasyonu için controller
+    _contentAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
     )..forward();
-
-    // Arka plan animasyonları için controller'lar
-    _controllers = List.generate(
-      _count,
-          (index) => AnimationController(
-        vsync: this,
-        duration: Duration(seconds: Random().nextInt(20) + 10),
-      )..repeat(reverse: true),
-    );
-
-    // Ekranda gezinen şekilleri oluştur
-    for (int i = 0; i < _count; i++) {
-      _children.add(
-        AnimatedBubble(
-          controller: _controllers[i],
-          child: Icon(
-            i.isEven ? Icons.directions_walk : Icons.timer_outlined,
-            color: Colors.white.withOpacity(0.1),
-            size: Random().nextDouble() * 40 + 20,
-          ),
-        ),
-      );
-    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
+    _animationController.dispose();
+    _contentAnimationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final authService = AuthService();
-    final size = MediaQuery.of(context).size;
     final textTheme = Theme.of(context).textTheme;
+    final authService = AuthService();
 
     return Scaffold(
+      backgroundColor: const Color(0xFF101010),
       body: Stack(
         children: [
-          // Dinamik Arka Plan
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0A7C7E), Color(0xFF121212)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
+          // Hareketli Sahne (Yol, İnsanlar, Gökyüzü)
+          AnimatedBuilder(
+            animation: _animationController,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: ScenePainter(animation: _animationController),
+                child: Container(),
+              );
+            },
           ),
-          // Gezinen objeler
-          ..._children,
-
-          // İçerik
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Spacer(flex: 2),
-                  // Giriş Animasyonu
-                  _AnimatedEntry(
-                    controller: _controller,
-                    child: Column(
-                      children: [
-                        const Icon(
-                          Icons.directions_walk,
-                          size: 100,
-                          color: Colors.white,
-                          shadows: [
-                            Shadow(color: Colors.black26, blurRadius: 20)
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          "Adımlar Geleceğe",
-                          style: textTheme.headlineSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 15),
-                        Text(
-                          "Kişisel antrenman koçunuzla hedeflerinizi aşmaya hazır olun.",
-                          style: textTheme.bodyLarge
-                              ?.copyWith(color: Colors.white70, fontSize: 18),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(flex: 3),
-                  _AnimatedEntry(
-                    controller: _controller,
-                    delay: 0.5,
-                    child: Column(
-                      children: [
-                        const Text(
-                          "Başlamak için giriş yapın",
-                          style: TextStyle(color: Colors.white54, fontSize: 16),
-                        ),
-                        const SizedBox(height: 20),
-                        InkWell(
-                          onTap: () => authService.signInWithGoogle(),
-                          borderRadius: BorderRadius.circular(40),
-                          splashColor: Colors.white.withOpacity(0.4),
-                          highlightColor: Colors.transparent,
-                          child: Ink(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.95),
-                              borderRadius: BorderRadius.circular(40),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 15,
-                                  offset: Offset(0, 4),
-                                )
-                              ],
-                            ),
-                            padding: const EdgeInsets.all(12),
-                            child: Image.asset(
-                              'assets/google_logo.png',
-                              height: 36,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(flex: 1),
+          // Işık ve gölge efektleri için gradient overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(0, -1.2),
+                radius: 1.5,
+                colors: [
+                  Colors.white.withOpacity(0.15),
+                  Colors.transparent,
                 ],
               ),
             ),
           ),
+          // Ana İçerik
+          SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                child: Column(
+                  children: [
+                    const Spacer(flex: 3),
+                    // Animasyonlu başlık ve metinler
+                    _AnimatedContent(
+                      controller: _contentAnimationController,
+                      child: Column(
+                        children: [
+                          Text(
+                            "Kendi Yolunu Çiz",
+                            textAlign: TextAlign.center,
+                            style: textTheme.displaySmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 46,
+                              letterSpacing: 1.1,
+                              shadows: [
+                                const Shadow(color: Colors.black, blurRadius: 25)
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            "Her gün, hedeflerine doğru atacağın yeni bir adımdır.",
+                            textAlign: TextAlign.center,
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: Colors.white.withOpacity(0.85),
+                              fontSize: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(flex: 4),
+                    // Giriş Butonu
+                    _AnimatedContent(
+                      controller: _contentAnimationController,
+                      delay: 0.2,
+                      child: Column(
+                        children: [
+                          const Text(
+                            "Hemen Başla",
+                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                          ),
+                          const SizedBox(height: 15),
+                          InkWell(
+                            onTap: () => authService.signInWithGoogle(),
+                            borderRadius: BorderRadius.circular(50),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.4),
+                                    blurRadius: 25,
+                                    spreadRadius: 3,
+                                  ),
+                                ],
+                              ),
+                              child: Image.asset('assets/google_logo.png', height: 40),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(flex: 2),
+                  ],
+                ),
+              ),
+            ),
+          )
         ],
       ),
     );
   }
 }
 
-// Ekranda gezinen baloncuklar için yardımcı widget
-class AnimatedBubble extends StatelessWidget {
-  final AnimationController controller;
-  final Widget child;
+// Tüm sahneyi çizen CustomPainter
+class ScenePainter extends CustomPainter {
+  final Animation<double> animation;
+  final Paint roadPaint = Paint()..color = const Color(0xFF212121);
+  final Paint linePaint = Paint()..color = Colors.white.withOpacity(0.15);
+  final Paint skyPaint = Paint()
+    ..shader = const LinearGradient(
+      colors: [Color(0xFFE57373), Color(0xFF0A7C7E)],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    ).createShader(Rect.fromLTWH(0, 0, 500, 400));
 
-  const AnimatedBubble({
-    super.key,
-    required this.controller,
-    required this.child,
-  });
+  ScenePainter({required this.animation}) : super(repaint: animation);
 
   @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final random = Random();
-    final startPosition =
-    Offset(random.nextDouble() * size.width, size.height * 1.2);
-    final endPosition =
-    Offset(random.nextDouble() * size.width, -size.height * 0.2);
+  void paint(Canvas canvas, Size size) {
+    final centerX = size.width / 2;
+    final horizonY = size.height * 0.4;
 
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        final position =
-        Offset.lerp(startPosition, endPosition, controller.value);
-        return Positioned(
-          left: position?.dx,
-          top: position?.dy,
-          child: child,
+    // Gökyüzü
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, horizonY), skyPaint);
+
+    // Yol
+    final path = Path();
+    path.moveTo(centerX - size.width * 1.5, size.height);
+    path.lineTo(centerX, horizonY);
+    path.lineTo(centerX + size.width * 1.5, size.height);
+    path.close();
+    canvas.drawPath(path, roadPaint);
+
+    // Yol çizgileri
+    const lineCount = 20;
+    for (int i = 0; i < lineCount; i++) {
+      final animationValue = (animation.value + (i / lineCount)) % 1.0;
+      final y = horizonY + (size.height - horizonY) * (animationValue * animationValue);
+      final perspective = 0.5 + animationValue * 0.5;
+      if (y < size.height) {
+        final paint = Paint()
+          ..color = Colors.white.withOpacity(0.2 * (1 - animationValue))
+          ..strokeWidth = 4 * perspective;
+        canvas.drawLine(
+          Offset(centerX - 10 * perspective, y),
+          Offset(centerX + 10 * perspective, y),
+          paint,
         );
-      },
-    );
+      }
+    }
+
+    // Yürüyen insanlar
+    const peopleCount = 15;
+    for (int i = 0; i < peopleCount; i++) {
+      final animationValue = (animation.value + (i / peopleCount)) % 1.0;
+      _drawPerson(canvas, size, animationValue, i);
+    }
   }
+
+  void _drawPerson(Canvas canvas, Size size, double animationValue, int index) {
+    final random = math.Random(index);
+    final lane = (random.nextDouble() - 0.5) * 2; // -1 (sol) ile 1 (sağ) arası
+    final speed = 0.5 + random.nextDouble() * 0.5;
+
+    final t = (animationValue * speed) % 1.0;
+
+    final y = size.height * 0.4 + (size.height * 0.6) * (t*t);
+    final perspective = 0.1 + t * 0.9;
+    final x = size.width / 2 + (lane * size.width * 0.6 * t);
+
+    // Yürüme animasyonu için bacak salınımı
+    final legSwing = math.sin(animation.value * 20 + random.nextDouble() * math.pi) * 8 * perspective;
+
+    if (y < size.height) {
+      final paint = Paint()..color = Colors.black.withOpacity(0.8 * (1 - t));
+      final bodyHeight = 30 * perspective;
+      final headRadius = 6 * perspective;
+
+      // Kafa
+      canvas.drawCircle(Offset(x, y - bodyHeight), headRadius, paint);
+      // Gövde
+      canvas.drawLine(Offset(x, y - bodyHeight + headRadius), Offset(x, y), paint..strokeWidth = 4 * perspective);
+      // Bacaklar
+      canvas.drawLine(Offset(x, y), Offset(x - legSwing, y + bodyHeight * 0.8), paint);
+      canvas.drawLine(Offset(x, y), Offset(x + legSwing, y + bodyHeight * 0.8), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant ScenePainter oldDelegate) => true;
 }
 
-// İçeriklerin animasyonlu girişi için yardımcı widget
-class _AnimatedEntry extends StatelessWidget {
+// İçeriklerin animasyonlu girişi (Değişiklik yok)
+class _AnimatedContent extends StatelessWidget {
   final AnimationController controller;
   final Widget child;
   final double delay;
 
-  const _AnimatedEntry({
+  const _AnimatedContent({
     required this.controller,
     required this.child,
     this.delay = 0.0,
@@ -222,15 +260,15 @@ class _AnimatedEntry extends StatelessWidget {
     return FadeTransition(
       opacity: CurvedAnimation(
         parent: controller,
-        curve: Interval(0.2 + delay * 0.5, 1.0, curve: Curves.easeOut),
+        curve: Interval(0.5 + delay, 1.0, curve: Curves.easeOut),
       ),
       child: SlideTransition(
         position: Tween<Offset>(
-          begin: const Offset(0, 0.2),
+          begin: const Offset(0, 0.5),
           end: Offset.zero,
         ).animate(CurvedAnimation(
           parent: controller,
-          curve: Interval(0.2 + delay * 0.5, 1.0, curve: Curves.easeOut),
+          curve: Interval(0.5 + delay, 1.0, curve: Curves.decelerate),
         )),
         child: child,
       ),
