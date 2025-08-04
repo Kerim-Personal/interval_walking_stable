@@ -286,7 +286,9 @@ class EnchantedNightPainter extends CustomPainter {
   void _drawStars(Canvas canvas, Size size) {
     final starGlow = starAnimation.value;
     for (var star in stars) {
-      final opacity = star.baseOpacity * (0.5 + starGlow * 0.5);
+      // Her yıldızın kendi hızında ve parlaklığında titreşmesi için
+      final twinkle = math.sin(starGlow * 2 * math.pi * star.twinkleSpeed) * 0.5 + 0.5;
+      final opacity = star.baseOpacity * twinkle;
       starPaint.color = Colors.white.withAlpha((255 * opacity).round());
       canvas.drawCircle(star.position * size.width, star.radius, starPaint);
 
@@ -388,13 +390,15 @@ class Star {
   double shootingProgress = 0.0;
   late Offset shootingStart;
   late Offset shootingEnd;
+  late final double twinkleSpeed;
 
   Star(this.index) {
     final random = math.Random(index);
     position = Offset(random.nextDouble(), random.nextDouble() * 0.45);
     radius = 0.5 + random.nextDouble() * 1.5;
     baseOpacity = 0.3 + random.nextDouble() * 0.5;
-    isShooting = random.nextDouble() > 0.995;
+    isShooting = random.nextDouble() > 0.98; // Daha sık kayan yıldız
+    twinkleSpeed = 0.5 + random.nextDouble() * 1.5; // Her yıldıza özel titreşim hızı
     if (isShooting) {
       shootingStart = position;
       shootingEnd =
@@ -408,62 +412,16 @@ class Star {
   }
 }
 
-class _GoogleSignInButton extends StatefulWidget {
+class _GoogleSignInButton extends StatelessWidget {
   final VoidCallback onTap;
   const _GoogleSignInButton({required this.onTap});
 
   @override
-  State<_GoogleSignInButton> createState() => _GoogleSignInButtonState();
-}
-
-class _GoogleSignInButtonState extends State<_GoogleSignInButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _glowController;
-  late Animation<double> _glowAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _glowController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 2000));
-    _glowAnimation = Tween<double>(begin: 0, end: 1)
-        .animate(CurvedAnimation(parent: _glowController, curve: Curves.easeInOut));
-    _glowController.repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _glowController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: widget.onTap,
+      onTap: onTap,
       borderRadius: BorderRadius.circular(50),
-      child: AnimatedBuilder(
-        animation: _glowAnimation,
-        builder: (context, child) {
-          final glowValue = _glowAnimation.value;
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.white.withAlpha((255 * (0.3 + glowValue * 0.3)).round()),
-                  blurRadius: 15 + glowValue * 15,
-                  spreadRadius: 2 + glowValue * 3,
-                ),
-              ],
-            ),
-            child: child,
-          );
-        },
-        child: Image.asset('assets/google_logo.png', height: 40),
-      ),
+      child: Image.asset('assets/google_logo.png', height: 40),
     );
   }
 }
