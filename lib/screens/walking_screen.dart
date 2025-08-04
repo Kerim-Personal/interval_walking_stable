@@ -1,8 +1,7 @@
-// lib/screens/walking_screen.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:interval_walking/models/difficulty_level.dart';
+import 'package:interval_walking/services/auth_service.dart';
 
 class WalkingScreen extends StatefulWidget {
   const WalkingScreen({super.key});
@@ -136,7 +135,6 @@ class _WalkingScreenState extends State<WalkingScreen> {
     super.dispose();
   }
 
-  // --- SEVİYE SEÇİM EKRANI DEVRİMİ ---
   Widget _buildLevelSelection() {
     final textTheme = Theme.of(context).textTheme;
     return Center(
@@ -154,7 +152,7 @@ class _WalkingScreenState extends State<WalkingScreen> {
             level: DifficultyLevel.baslangic,
             title: "Başlangıç",
             subtitle: "5 Tekrar | 2dk Normal / 1dk Hızlı",
-            icon: Icons.grass, // Başlangıcı simgeleyen filiz
+            icon: Icons.grass,
             color: Colors.green.shade300,
           ),
           const SizedBox(height: 20),
@@ -178,7 +176,6 @@ class _WalkingScreenState extends State<WalkingScreen> {
     );
   }
 
-  // --- YENİ YARDIMCI WIDGET: SEVİYE BUTON KARTI ---
   Widget _buildLevelButton({
     required DifficultyLevel level,
     required String title,
@@ -188,7 +185,7 @@ class _WalkingScreenState extends State<WalkingScreen> {
   }) {
     final theme = Theme.of(context);
     return Card(
-      clipBehavior: Clip.antiAlias, // Taşan InkWell efektini kesmek için
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => _selectLevel(level),
         child: Padding(
@@ -277,7 +274,7 @@ class _WalkingScreenState extends State<WalkingScreen> {
                   size: 50,
                 ),
               ),
-              const SizedBox(width: 35), // Denge için boşluk
+              const SizedBox(width: 35),
             ],
           ),
         ),
@@ -299,9 +296,22 @@ class _WalkingScreenState extends State<WalkingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // AuthService'i burada tanımlıyoruz
+    final authService = AuthService();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Aralıklı Yürüyüş'),
+        // Çıkış yap butonu
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Çıkış Yap',
+            onPressed: () async {
+              await authService.signOut();
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),

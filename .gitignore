@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase configuration files
+# IMPORTANT: These files contain sensitive API keys and should not be checked into version control.
+/android/app/google-services.json

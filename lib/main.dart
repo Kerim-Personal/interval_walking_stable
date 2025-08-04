@@ -1,7 +1,18 @@
-import 'package:flutter/material.dart';
-import 'package:interval_walking/screens/walking_screen.dart';
+// lib/main.dart (Güncellenmiş Hali)
 
-void main() {
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+import 'package:interval_walking/screens/login_screen.dart';
+import 'package:interval_walking/screens/walking_screen.dart';
+import 'package:interval_walking/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+// Firebase'i başlatmak için main fonksiyonunu async yap
+Future<void> main() async {
+  // Flutter binding'lerinin hazır olduğundan emin ol
+  WidgetsFlutterBinding.ensureInitialized();
+  // Firebase'i başlat
+  await Firebase.initializeApp();
   runApp(const IntervalWalkingApp());
 }
 
@@ -10,76 +21,82 @@ class IntervalWalkingApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Modern, canlı ve koyu bir tema.
+    // Tema kodunuz burada (değişiklik yok)
     final darkTheme = ThemeData(
       brightness: Brightness.dark,
-      primaryColor: const Color(0xFF0A7C7E), // Canlı Teal
-      scaffoldBackgroundColor: const Color(0xFF121212), // Klasik Koyu Arka Plan
+      primaryColor: const Color(0xFF0A7C7E),
+      scaffoldBackgroundColor: const Color(0xFF121212),
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF0A7C7E),      // Ana Eylem Rengi (Teal)
-        secondary: Color(0xFFE57373),   // İkincil Eylem Rengi (Hızlı Tempo için Kırmızımsı)
-        onPrimary: Colors.white,        // Ana Rengin Üzerindeki Yazı
-        onSecondary: Colors.white,      // İkincil Rengin Üzerindeki Yazı
-        surface: Color(0xFF1E1E1E),     // Kart gibi yüzeylerin rengi
-        onSurface: Colors.white,        // Yüzeylerin üzerindeki yazı
+        primary: Color(0xFF0A7C7E),
+        secondary: Color(0xFFE57373),
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
+        surface: Color(0xFF1E1E1E),
+        onSurface: Colors.white,
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF121212), // Arka planla aynı, bütünleşik bir görünüm
-        elevation: 0, // Gölge yok
+        backgroundColor: Color(0xFF121212),
+        elevation: 0,
         centerTitle: true,
-        titleTextStyle: TextStyle(
-          fontFamily: 'sans-serif', // Daha modern bir sistem fontu
-          fontSize: 22,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
+        titleTextStyle: TextStyle(fontFamily: 'sans-serif', fontSize: 22, fontWeight: FontWeight.w600, color: Colors.white),
       ),
       textTheme: const TextTheme(
-        // Büyük başlıklar (Antrenman Seviyenizi Seçin)
         headlineSmall: TextStyle(fontSize: 26.0, fontWeight: FontWeight.bold, color: Colors.white),
-        // Faz metni (Normal Tempo)
         displaySmall: TextStyle(fontSize: 36.0, fontWeight: FontWeight.bold, color: Colors.white),
-        // Zamanlayıcı
         displayMedium: TextStyle(fontSize: 85.0, fontWeight: FontWeight.w200, color: Colors.white),
-        // Tekrar Sayısı
         bodyLarge: TextStyle(fontSize: 20.0, color: Colors.white70),
-        // Buton Yazıları
         labelLarge: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF0A7C7E), // Ana Eylem Rengi
+          backgroundColor: const Color(0xFF0A7C7E),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0), // Tamamen yuvarlak kenarlar
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
         ),
       ),
-      iconButtonTheme: IconButtonThemeData(
-          style: IconButton.styleFrom(
-            foregroundColor: Colors.white70,
-          )),
-      // ************************************
-      // ******** İŞTE DOĞRU KOD! *********
-      // ************************************
-      cardTheme: CardThemeData( // 'CardTheme' -> 'CardThemeData' OLARAK DÜZELTİLDİ
-        color: const Color(0xFF1E1E1E), // Yüzey rengi
+      iconButtonTheme: IconButtonThemeData(style: IconButton.styleFrom(foregroundColor: Colors.white70)),
+      cardTheme: CardThemeData(
+        color: const Color(0xFF1E1E1E),
         elevation: 0,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.white.withAlpha(26)) // İnce bir kenarlık
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.white.withAlpha(26))),
       ),
     );
 
     return MaterialApp(
       title: 'Aralıklı Yürüyüş',
-      theme: darkTheme, // Varsayılan olarak koyu temayı kullanıyoruz
-      darkTheme: darkTheme, // Sistem koyu moda geçtiğinde de bu tema geçerli
-      themeMode: ThemeMode.dark, // Her zaman koyu modu zorunlu kıl
+      theme: darkTheme,
+      darkTheme: darkTheme,
+      themeMode: ThemeMode.dark,
       debugShowCheckedModeBanner: false,
-      home: const WalkingScreen(),
+      // Ana ekranı AuthWrapper ile değiştiriyoruz
+      home: const AuthWrapper(),
+    );
+  }
+}
+
+// YENİ WIDGET: Kullanıcı giriş durumuna göre yönlendirme yapar
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final authService = AuthService();
+
+    return StreamBuilder<User?>(
+      stream: authService.user,
+      builder: (context, snapshot) {
+        // Bağlantı bekleniyorsa yükleme ekranı göster
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        // Kullanıcı giriş yapmışsa ana ekrana yönlendir
+        if (snapshot.hasData) {
+          return const WalkingScreen();
+        }
+        // Kullanıcı giriş yapmamışsa giriş ekranına yönlendir
+        return const LoginScreen();
+      },
     );
   }
 }
